@@ -27,7 +27,15 @@ func NewClosureBusy(desc string) *ClosureBusy {
 
 func (c *ClosureBusy) Put(config *ATNConfig) (*ATNConfig, bool) {
 	if c.bMap == nil {
-		c.bMap = NewJStore[*ATNConfig, Comparator[*ATNConfig]](aConfEqInst, ClosureBusyCollection, c.desc)
+		// yaklang fork: 4.13.1 shipped ClosureBusy with aConfEqInst (ObjEq ->
+		// ATNConfig.Hash/Equals), which dedups by the *standard* config equality,
+		// whereas ATNConfigSet.configLookup uses aConfCompInst (ATNConfigComparator,
+		// the *custom* equality). The mismatch lets closureBusy miss duplicates the
+		// config set would merge, so the closure re-explores configs exponentially
+		// (observed ~400M configs / 17GB for one 19KB PHP mode-switching file ->
+		// 2.2x slower than 4.11.1). Use the same custom comparator as configLookup so
+		// closureBusy dedups consistently with the set.
+		c.bMap = NewJStore[*ATNConfig, Comparator[*ATNConfig]](aConfCompInst, ClosureBusyCollection, c.desc)
 	}
 	return c.bMap.Put(config)
 }
