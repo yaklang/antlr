@@ -127,7 +127,12 @@ func NewJStore[T any, C Comparator[T]](comparator Comparator[T], cType Collectio
 	}
 
 	s := &JStore[T, C]{
-		store:      make(map[int][]T, 1),
+		// yaklang perf: ANTLR's config/reach/closure sets grow from 1 to hundreds-thousands
+		// during a single prediction. Starting at 1 forces repeated map rehashing (each doubling
+		// reallocs + copies all buckets). Pre-size to a small power of two so the common case
+		// never rehashes; the Go runtime rounds up internally anyway and over-allocation is
+		// bounded by the set lifetime (one AdaptivePredict call).
+		store:      make(map[int][]T, 16),
 		comparator: comparator,
 	}
 	if collectStats {
@@ -280,7 +285,8 @@ type JMap[K, V any, C Comparator[K]] struct {
 
 func NewJMap[K, V any, C Comparator[K]](comparator Comparator[K], cType CollectionSource, desc string) *JMap[K, V, C] {
 	m := &JMap[K, V, C]{
-		store:      make(map[int][]*entry[K, V], 1),
+		// yaklang perf: pre-size backing map (see NewJStore).
+		store:      make(map[int][]*entry[K, V], 16),
 		comparator: comparator,
 	}
 	if collectStats {
