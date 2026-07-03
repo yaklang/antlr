@@ -1006,65 +1006,58 @@ func (p *ParserATNSimulator) closureCheckingStopState(config *ATNConfig, configs
 		fmt.Println("closure(" + config.String() + ")")
 	}
 
-	var stack []*ATNConfig
-	visited := make(map[*ATNConfig]bool)
+	// yaklang perf: 4.13.1 rewrote this as an iterative loop with a per-call
+	// `visited map[*ATNConfig]bool` + `stack []*ATNConfig` to avoid deep-recursion
+	// stack overflow. But closure() runs once per input symbol per decision, so those
+	// allocations happen thousands of times and dominate GC on grammars with large LL
+	// full-context closures (e.g. PHP/HTML mode switching). closureBusy already prevents
+	// infinite epsilon/right-recursive loops, so `visited` is a redundant work-saver, not
+	// a correctness requirement. Revert to the 4.11.1 recursive form: no map, no stack.
+	// Stack-depth safety matches 4.11.1 (which shipped this exact recursive code); Go
+	// goroutine stacks grow on demand and depth is bounded by call-chain nesting, not input.
 
-	stack = append(stack, config)
-
-	for len(stack) > 0 {
-		currConfig := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-
-		if _, ok := visited[currConfig]; ok {
-			continue
-		}
-		visited[currConfig] = true
-
-		if _, ok := currConfig.GetState().(*RuleStopState); ok {
-			// We hit rule end. If we have context info, use it
-			// run thru all possible stack tops in ctx
-			if !currConfig.GetContext().isEmpty() {
-				for i := 0; i < currConfig.GetContext().length(); i++ {
-					if currConfig.GetContext().getReturnState(i) == BasePredictionContextEmptyReturnState {
-						if fullCtx {
-							nb := NewATNConfig1(currConfig, currConfig.GetState(), BasePredictionContextEMPTY)
-							configs.Add(nb, p.mergeCache)
-							continue
-						} else {
-							// we have no context info, just chase follow links (if greedy)
-							if runtimeConfig.parserATNSimulatorDebug {
-								fmt.Println("FALLING off rule " + p.getRuleName(currConfig.GetState().GetRuleIndex()))
-							}
-							p.closureWork(currConfig, configs, closureBusy, collectPredicates, fullCtx, depth, treatEOFAsEpsilon)
-						}
+	if _, ok := config.GetState().(*RuleStopState); ok {
+		// We hit rule end. If we have context info, use it
+		// run thru all possible stack tops in ctx
+		if !config.GetContext().isEmpty() {
+			for i := 0; i < config.GetContext().length(); i++ {
+				if config.GetContext().getReturnState(i) == BasePredictionContextEmptyReturnState {
+					if fullCtx {
+						nb := NewATNConfig1(config, config.GetState(), BasePredictionContextEMPTY)
+						configs.Add(nb, p.mergeCache)
 						continue
+					} else {
+						// we have no context info, just chase follow links (if greedy)
+						if runtimeConfig.parserATNSimulatorDebug {
+							fmt.Println("FALLING off rule " + p.getRuleName(config.GetState().GetRuleIndex()))
+						}
+						p.closureWork(config, configs, closureBusy, collectPredicates, fullCtx, depth, treatEOFAsEpsilon)
 					}
-					returnState := p.atn.states[currConfig.GetContext().getReturnState(i)]
-					newContext := currConfig.GetContext().GetParent(i) // "pop" return state
-
-					c := NewATNConfig5(returnState, currConfig.GetAlt(), newContext, currConfig.GetSemanticContext())
-					// While we have context to pop back from, we may have
-					// gotten that context AFTER having falling off a rule.
-					// Make sure we track that we are now out of context.
-					c.SetReachesIntoOuterContext(currConfig.GetReachesIntoOuterContext())
-
-					stack = append(stack, c)
+					continue
 				}
-				continue
-			} else if fullCtx {
-				// reached end of start rule
-				configs.Add(currConfig, p.mergeCache)
-				continue
-			} else {
-				// else if we have no context info, just chase follow links (if greedy)
-				if runtimeConfig.parserATNSimulatorDebug {
-					fmt.Println("FALLING off rule " + p.getRuleName(currConfig.GetState().GetRuleIndex()))
-				}
+				returnState := p.atn.states[config.GetContext().getReturnState(i)]
+				newContext := config.GetContext().GetParent(i) // "pop" return state
+
+				c := NewATNConfig5(returnState, config.GetAlt(), newContext, config.GetSemanticContext())
+				// While we have context to pop back from, we may have
+				// gotten that context AFTER having falling off a rule.
+				// Make sure we track that we are now out of context.
+				c.SetReachesIntoOuterContext(config.GetReachesIntoOuterContext())
+				p.closureCheckingStopState(c, configs, closureBusy, collectPredicates, fullCtx, depth-1, treatEOFAsEpsilon)
+			}
+			return
+		} else if fullCtx {
+			// reached end of start rule
+			configs.Add(config, p.mergeCache)
+			return
+		} else {
+			// else if we have no context info, just chase follow links (if greedy)
+			if runtimeConfig.parserATNSimulatorDebug {
+				fmt.Println("FALLING off rule " + p.getRuleName(config.GetState().GetRuleIndex()))
 			}
 		}
-
-		p.closureWork(currConfig, configs, closureBusy, collectPredicates, fullCtx, depth, treatEOFAsEpsilon)
 	}
+	p.closureWork(config, configs, closureBusy, collectPredicates, fullCtx, depth, treatEOFAsEpsilon)
 }
 
 //goland:noinspection GoBoolExpressions
