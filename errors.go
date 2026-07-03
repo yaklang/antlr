@@ -237,19 +237,21 @@ func (f *FailedPredicateException) formatMessage(predicate, message string) stri
 type ParseCancellationException struct {
 }
 
+// yaklang fork: antlr4#4603 — 4.13.1 left these as panic("implement me").
+// Callers (error listeners, RecognitionException wrappers, test helpers) invoke them
+// during/after a BailErrorStrategy cancellation, propagating a spurious "implement me"
+// panic that masquerades as a real failure. Return zero values instead so cancellation
+// stays a benign control-flow signal, matching how 4.11.1 effectively behaved.
 func (p ParseCancellationException) GetOffendingToken() Token {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (p ParseCancellationException) GetMessage() string {
-	//TODO implement me
-	panic("implement me")
+	return ""
 }
 
 func (p ParseCancellationException) GetInputStream() IntStream {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func NewParseCancellationException() *ParseCancellationException {
