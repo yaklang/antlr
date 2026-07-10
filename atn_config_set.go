@@ -79,7 +79,7 @@ func NewATNConfigSet(fullCtx bool) *ATNConfigSet {
 //
 // We use (s,i,pi) as the key.
 // Updates dipsIntoOuterContext and hasSemanticContext when necessary.
-func (b *ATNConfigSet) Add(config *ATNConfig, mergeCache *JPCMap) bool {
+func (b *ATNConfigSet) Add(config *ATNConfig, mergeCache *JPCMap2) bool {
 	if b.readOnly {
 		panic("set is read-only")
 	}

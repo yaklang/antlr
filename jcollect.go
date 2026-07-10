@@ -272,7 +272,7 @@ type entry[K, V any] struct {
 }
 
 type JMap[K, V any, C Comparator[K]] struct {
-	store      map[int][]*entry[K, V]
+	store      map[int][]entry[K, V]
 	len        int
 	comparator Comparator[K]
 	stats      *JStatRec
@@ -280,7 +280,7 @@ type JMap[K, V any, C Comparator[K]] struct {
 
 func NewJMap[K, V any, C Comparator[K]](comparator Comparator[K], cType CollectionSource, desc string) *JMap[K, V, C] {
 	m := &JMap[K, V, C]{
-		store:      make(map[int][]*entry[K, V], 1),
+		store:      make(map[int][]entry[K, V], 1),
 		comparator: comparator,
 	}
 	if collectStats {
@@ -322,7 +322,7 @@ func (m *JMap[K, V, C]) Put(key K, val V) (V, bool) {
 			m.stats.PutHashConflicts++
 		}
 	}
-	m.store[kh] = append(m.store[kh], &entry[K, V]{key, val})
+	m.store[kh] = append(m.store[kh], entry[K, V]{key, val})
 	if collectStats {
 		if len(m.store[kh]) > m.stats.MaxSlotSize {
 			m.stats.MaxSlotSize = len(m.store[kh])
@@ -393,7 +393,7 @@ func (m *JMap[K, V, C]) Delete(key K) {
 }
 
 func (m *JMap[K, V, C]) Clear() {
-	m.store = make(map[int][]*entry[K, V])
+	m.store = make(map[int][]entry[K, V])
 }
 
 type JPCMap struct {

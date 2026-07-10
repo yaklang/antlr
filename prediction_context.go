@@ -313,7 +313,7 @@ func predictionContextFromRuleContext(a *ATN, outerContext RuleContext) *Predict
 	return SingletonBasePredictionContextCreate(parent, transition.(*RuleTransition).followState.GetStateNumber())
 }
 
-func merge(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMap) *PredictionContext {
+func merge(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMap2) *PredictionContext {
 
 	// Share same graph if both same
 	//
@@ -337,9 +337,26 @@ func merge(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMap) *Pr
 
 	// Convert either Singleton or Empty to arrays, so that we can merge them
 	//
+	// yaklang perf: probe the cache with the *original* (stable) context pointers
+	// before convertToArray. convertToArray allocates a fresh array each call, so
+	// mergeArrays would key the cache on that fresh array and re-merge on every
+	// repeat. Only the array-merge path needs this; singleton+singleton is already
+	// cached inside mergeSingletons.
+	if mergeCache != nil {
+		if previous, present := mergeCache.Get(a, b); present {
+			return previous
+		}
+		if previous, present := mergeCache.Get(b, a); present {
+			return previous
+		}
+	}
 	ara := convertToArray(a)
 	arb := convertToArray(b)
-	return mergeArrays(ara, arb, rootIsWildcard, mergeCache)
+	M := mergeArrays(ara, arb, rootIsWildcard, mergeCache)
+	if mergeCache != nil {
+		mergeCache.Put(a, b, M)
+	}
+	return M
 }
 
 func convertToArray(pc *PredictionContext) *PredictionContext {
@@ -384,7 +401,7 @@ func convertToArray(pc *PredictionContext) *PredictionContext {
 // otherwise false to indicate a full-context merge
 // @param mergeCache
 // /
-func mergeSingletons(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMap) *PredictionContext {
+func mergeSingletons(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMap2) *PredictionContext {
 	if mergeCache != nil {
 		previous, present := mergeCache.Get(a, b)
 		if present {
@@ -543,7 +560,7 @@ func mergeRoot(a, b *PredictionContext, rootIsWildcard bool) *PredictionContext 
 // <embed src="images/ArrayMerge_EqualTop.svg" type="image/svg+xml"/></p>
 //
 //goland:noinspection GoBoolExpressions
-func mergeArrays(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMap) *PredictionContext {
+func mergeArrays(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMap2) *PredictionContext {
 	if mergeCache != nil {
 		previous, present := mergeCache.Get(a, b)
 		if present {
