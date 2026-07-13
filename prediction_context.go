@@ -682,15 +682,20 @@ func mergeArrays(a, b *PredictionContext, rootIsWildcard bool, mergeCache *JPCMa
 //
 //goland:noinspection GoUnusedFunction
 func combineCommonParents(parents *[]*PredictionContext) {
-	uniqueParents := NewJStore[*PredictionContext, Comparator[*PredictionContext]](pContextEqInst, PredictionContextCollection, "combineCommonParents for PredictionContext")
-
+	// yaklang perf: use a plain pointer-identity map instead of JStore.
+	// JStore allocs a struct + map[int][]T + grows bucket slices per call;
+	// a plain map is one alloc and faster lookup. We lose deep-Equals dedup
+	// (equal-but-different-pointer parents won't be unified), but that only
+	// affects memory sharing, not correctness. The GC savings dominate.
+	uniqueParents := make(map[*PredictionContext]*PredictionContext, len(*parents))
 	for p := 0; p < len(*parents); p++ {
 		parent := (*parents)[p]
-		_, _ = uniqueParents.Put(parent)
+		if _, ok := uniqueParents[parent]; !ok {
+			uniqueParents[parent] = parent
+		}
 	}
 	for q := 0; q < len(*parents); q++ {
-		pc, _ := uniqueParents.Get((*parents)[q])
-		(*parents)[q] = pc
+		(*parents)[q] = uniqueParents[(*parents)[q]]
 	}
 }
 
