@@ -5,7 +5,6 @@
 package antlr
 
 import (
-	"reflect"
 	"strconv"
 )
 
@@ -168,25 +167,6 @@ func (prc *BaseParserRuleContext) GetChild(i int) Tree {
 	return nil
 }
 
-func (prc *BaseParserRuleContext) GetChildOfType(i int, childType reflect.Type) RuleContext {
-	if childType == nil {
-		return prc.GetChild(i).(RuleContext)
-	}
-
-	for j := 0; j < len(prc.children); j++ {
-		child := prc.children[j]
-		if reflect.TypeOf(child) == childType {
-			if i == 0 {
-				return child.(RuleContext)
-			}
-
-			i--
-		}
-	}
-
-	return nil
-}
-
 func (prc *BaseParserRuleContext) ToStringTree(ruleNames []string, recog Recognizer) string {
 	return TreesStringTree(prc, ruleNames, recog)
 }
@@ -253,50 +233,6 @@ func (prc *BaseParserRuleContext) GetTokens(ttype int) []TerminalNode {
 
 func (prc *BaseParserRuleContext) GetPayload() interface{} {
 	return prc
-}
-
-func (prc *BaseParserRuleContext) getChild(ctxType reflect.Type, i int) RuleContext {
-	if prc.children == nil || i < 0 || i >= len(prc.children) {
-		return nil
-	}
-
-	j := -1 // what element have we found with ctxType?
-	for _, o := range prc.children {
-
-		childType := reflect.TypeOf(o)
-
-		if childType.Implements(ctxType) {
-			j++
-			if j == i {
-				return o.(RuleContext)
-			}
-		}
-	}
-	return nil
-}
-
-// Go lacks generics, so it's not possible for us to return the child with the correct type, but we do
-// check for convertibility
-
-func (prc *BaseParserRuleContext) GetTypedRuleContext(ctxType reflect.Type, i int) RuleContext {
-	return prc.getChild(ctxType, i)
-}
-
-func (prc *BaseParserRuleContext) GetTypedRuleContexts(ctxType reflect.Type) []RuleContext {
-	if prc.children == nil {
-		return make([]RuleContext, 0)
-	}
-
-	contexts := make([]RuleContext, 0)
-
-	for _, child := range prc.children {
-		childType := reflect.TypeOf(child)
-
-		if childType.ConvertibleTo(ctxType) {
-			contexts = append(contexts, child.(RuleContext))
-		}
-	}
-	return contexts
 }
 
 func (prc *BaseParserRuleContext) GetChildCount() int {
