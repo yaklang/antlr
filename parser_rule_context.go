@@ -73,6 +73,7 @@ func InitBaseParserRuleContext(prc *BaseParserRuleContext, parent ParserRuleCont
 	prc.exception = nil
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) SetException(e RecognitionException) {
 	prc.exception = e
 }
@@ -81,6 +82,7 @@ func (prc *BaseParserRuleContext) GetChildren() []Tree {
 	return prc.children
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) CopyFrom(ctx *BaseParserRuleContext) {
 	// from RuleContext
 	prc.parentCtx = ctx.parentCtx
@@ -90,6 +92,7 @@ func (prc *BaseParserRuleContext) CopyFrom(ctx *BaseParserRuleContext) {
 	prc.stop = ctx.stop
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) GetText() string {
 	if prc.GetChildCount() == 0 {
 		return ""
@@ -123,6 +126,7 @@ func (prc *BaseParserRuleContext) addTerminalNodeChild(child TerminalNode) Termi
 	return child
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) AddChild(child RuleContext) RuleContext {
 	if prc.children == nil {
 		prc.children = make([]Tree, 0)
@@ -143,6 +147,7 @@ func (prc *BaseParserRuleContext) RemoveLastChild() {
 	}
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) AddTokenNode(token Token) *TerminalNodeImpl {
 
 	node := NewTerminalNodeImpl(token)
@@ -152,6 +157,7 @@ func (prc *BaseParserRuleContext) AddTokenNode(token Token) *TerminalNodeImpl {
 
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) AddErrorNode(badToken Token) *ErrorNodeImpl {
 	node := NewErrorNodeImpl(badToken)
 	prc.addTerminalNodeChild(node)
@@ -159,6 +165,7 @@ func (prc *BaseParserRuleContext) AddErrorNode(badToken Token) *ErrorNodeImpl {
 	return node
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) GetChild(i int) Tree {
 	if prc.children != nil && len(prc.children) >= i {
 		return prc.children[i]
@@ -167,6 +174,7 @@ func (prc *BaseParserRuleContext) GetChild(i int) Tree {
 	return nil
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) ToStringTree(ruleNames []string, recog Recognizer) string {
 	return TreesStringTree(prc, ruleNames, recog)
 }
@@ -195,6 +203,7 @@ func (prc *BaseParserRuleContext) GetStop() Token {
 	return prc.stop
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) GetToken(ttype int, i int) TerminalNode {
 
 	for j := 0; j < len(prc.children); j++ {
@@ -212,6 +221,7 @@ func (prc *BaseParserRuleContext) GetToken(ttype int, i int) TerminalNode {
 	return nil
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) GetTokens(ttype int) []TerminalNode {
 	if prc.children == nil {
 		return make([]TerminalNode, 0)
@@ -243,6 +253,7 @@ func (prc *BaseParserRuleContext) GetChildCount() int {
 	return len(prc.children)
 }
 
+//go:noinline
 func (prc *BaseParserRuleContext) GetSourceInterval() Interval {
 	if prc.start == nil || prc.stop == nil {
 		return TreeInvalidInterval
@@ -257,6 +268,7 @@ func (prc *BaseParserRuleContext) GetSourceInterval() Interval {
 // (root child1 .. childN). Print just a node if b is a leaf.
 //
 
+//go:noinline
 func (prc *BaseParserRuleContext) String(ruleNames []string, stop RuleContext) string {
 
 	var p ParserRuleContext = prc
