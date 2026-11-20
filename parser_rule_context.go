@@ -187,7 +187,6 @@ func (prc *BaseParserRuleContext) Accept(visitor ParseTreeVisitor) interface{} {
 	return visitor.VisitChildren(prc)
 }
 
-//go:noinline
 func (prc *BaseParserRuleContext) SetStart(t Token) {
 	prc.start = t
 }
@@ -196,7 +195,6 @@ func (prc *BaseParserRuleContext) GetStart() Token {
 	return prc.start
 }
 
-//go:noinline
 func (prc *BaseParserRuleContext) SetStop(t Token) {
 	prc.stop = t
 }
@@ -304,7 +302,6 @@ func (prc *BaseParserRuleContext) String(ruleNames []string, stop RuleContext) s
 	return s
 }
 
-//go:noinline
 func (prc *BaseParserRuleContext) SetParent(v Tree) {
 	if v == nil {
 		prc.parentCtx = nil
@@ -345,7 +342,6 @@ func (prc *BaseParserRuleContext) IsEmpty() bool {
 // Since tokens on hidden channels (e.g. whitespace or comments) are not
 // added to the parse trees, they will not appear in the output of this
 // method.
-//go:noinline
 func (prc *BaseParserRuleContext) GetParent() Tree {
 	return prc.parentCtx
 }
